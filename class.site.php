@@ -585,7 +585,7 @@ class Site {
                 }                
             }
 			print "<a href='../site/mobilemidwife_sync/' target='new' class='topmenu'>MOBILE MIDWIFE SYNC</a>";                            
-			print "<a href='../site/lite_sync/' target='new' class='topmenu'>EHR-LITE SYNC</a>";                                                                    
+			print "<a href='../site/lite/' target='new' class='topmenu'>EHR-LITE SYNC</a>";                                                                    
             print "<a href='".$_SERVER["PHP_SELF"]."?page=HOWTO' class='topmenu'>".MENU_HOWTO."</a>";
             print "<a href='".$_SERVER["PHP_SELF"]."?page=ABOUT' class='topmenu'>".MENU_ABOUT."</a>";
             print "<a href='".$_SERVER["PHP_SELF"]."?page=CREDITS' class='topmenu'>".MENU_CREDITS."</a>";

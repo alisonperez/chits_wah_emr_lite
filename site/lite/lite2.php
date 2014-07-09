@@ -1,456 +1,546 @@
 <?php
-	include "../class/dbConnect.php";
-	include "class/mypdf/mypdf.php";
-	echo"<html>
-		<head>
-			<title>A2 Form</title>
-			<link rel='stylesheet' href='../styles/style.css' type='text/css'  />
-			<script type='text/javascript'>
-				function hideDiv()
-				{
-					var divHeader = document.getElementById('header');
-					divHeader.style.background=\"#FFFFFF\";
-					
-					var divHeader1 = document.getElementsByTagName('h1');
-					for (var i=0; i<divHeader1.length; i++) 
-					{
-					    // applies css style
-					    divHeader1[i].style.cssText = \"text-shadow: 2px 2px 2px #FFFFFF; color:black;\"
-					    
-					}
-					
-					var divHeader2 = document.getElementsByTagName('h2');
-					for (var i=0; i<divHeader2.length; i++) 
-					{
-					    // applies css style
-					    divHeader2[i].style.cssText = \"text-shadow: 2px 2px 2px #FFFFFF; color:black;\"
-					    
-					}
-					
-					var divHeader4 = document.getElementsByTagName('h4');
-					for (var i=0; i<divHeader4.length; i++) 
-					{
-					    // applies css style
-					    divHeader4[i].style.cssText = \"text-shadow: 2px 2px 2px #FFFFFF; color:black;\"
-					    
-					}
-					
+	if($_POST['sync_user']!=NULL || $_POST['sync_user']!=''){
+		lite_connect($_POST['sync_user']);
+		
+		//INSERT RECORDS (m_patient)		
+		$new_record_count = 0;
+		$check_status_sql = "SELECT lite_patient_id, emr_patient_id, lite_specific_id, emr_specific_id, table_name, entry_date, sync_type FROM m_push_status WHERE push_flag ='Y' AND table_name='m_patient' AND sync_type='N'";
+		$new_patient_array = get_data_array($check_status_sql);
+		
+		if($new_patient_array!=NULL || $new_patient_array!=''){
+			ehr_connect();
+			$array_m_push_update = array();
+			foreach($new_patient_array as $p_array => $content){
+				$pxid=0;
 				
-					var bodyDiv = document.getElementById('body');
-					bodyDiv.style.backgroundColor=\"#FFFFFF\";
+				$new_id = get_new_id($content);	
+				$insert_text = insert_values($content, $new_id);
+				insert_query($insert_text, $content[4]);
 					
-					mainDiv = document.getElementsByClassName('Show');
-				    for (var i = 0; i < mainDiv.length; i++) {
-				        mainDiv[i].style.display=\"none\";
-				    }
-										
-					var hfDiv = document.getElementById('facility');
-					var br = document.createElement('br');
-					hfDiv.insertBefore(br, hfDiv.firstChild);
-					hfDiv.insertBefore(br, hfDiv.firstChild);
+				$push_data_array = array($content[0],$new_id, $content[2],$content[3],$content[4],$content[5],'N', $content[6]);
+				array_push($array_m_push_update,$push_data_array);
+				unset($push_data_array);
+				$new_record_count += 1;
+			}
+			update_m_push($array_m_push_update, 'newpatient');
+			unset($array_m_push_update);
+			
+		}
+		
+		//INSERT RECORDS (table with primary keys)
+		$table_array = array('m_consult',						//consult_id
+							'm_patient_mc',						//mc_id
+							'm_patient_fp',						//fp_id
+							'm_patient_ccdev',					//ccdev_id
+							'm_consult_notes',					//notes_id
+							'm_patient_fp_method_service',		//fp_servcice_id
+							'm_patient_fp_dropout',				//dropout_id
+							'm_family',							//family_id
+							'm_consult_lab',					//request_id
+							'm_patient_ntp',					//ntp_id [2]
+							'm_family_cct_member',				//cct_id
+							'm_consult_ntp_symptopmatics',		//symptomatic_id
+							'm_patient_ntp_report',				//report_id
+							'm_consult_reminder',				//reminder_id
+							'm_patient_fp_method',				//fp_px_id
+							'm_consult_appointments');			//schedule_id
+							//list of secondary table with foreign key
+
+		foreach($table_array as $tablename){
+			lite_connect($host);
+			$check_status_sql = "SELECT lite_patient_id, emr_patient_id, lite_specific_id, emr_specific_id, table_name, entry_date, sync_type FROM m_push_status WHERE push_flag ='Y' AND table_name='$tablename' AND sync_type='N'";
+			$new_consult_array = get_data_array($check_status_sql);
+			
+			if($new_consult_array!=NULL || $new_consult_array!=''){
+				ehr_connect();
+				$array_m_push_update = array();
+				
+				foreach($new_consult_array as $c_array => $new_consult){
+					$new_id = 0;
 					
-														
+					$new_id = get_new_id($new_consult);			
+					$insert_text = insert_values($new_consult, $new_id);
+					insert_query($insert_text, $new_consult[4]);
+					
+					$push_data_array = array($new_consult[0], $new_consult[1], $new_consult[2],$new_id,$new_consult[4],$new_consult[5],'N', $new_consult[6]);
+					
+					array_push($array_m_push_update,$push_data_array);
+					unset($push_data_array);
+					$new_record_count += 1;
 				}
-			</script>
-		</head>
-
-		<body>
-			<div id='container'>
-				<div id='header'>
-					<h4 class='shadow'><span class='indent10'>Annex A2</span></h4><br />					
-					<h1>PHILIPPINE HEALTH INSURANCE CORPORATION</h1>
-					<h2>PCB PROVIDER CLIENTELE PROFILE</h2>
-					
-					<div class='width890 right Show'>
-						<button type='button' title='Printer Friendly Format' onclick='hideDiv();'>
-							<img src='../styles/images/printer.png' alt='Printer Friendly Format'>
-						</button>
-						<a type='button' title='Download XML File' download href='../xml/A2.xml' style='cursor:default'>
-							<img src='../styles/images/xml.png' alt='Download XML File' style='width: 30px; height: 30px;'>
-						</a>
-					</div>
-				</div>
-				<div id='body'>
-					<div class='width750 center Show'>
-						<form name='a2form' method='POST'>
-						<br /><hr />";
+				update_m_push($array_m_push_update, 'new');
+				unset($array_m_push_update);
+				
+			}
+		}
 	
-						$function->fromDateToDate(); //Load Month and Year Selection
+		//INSERT RECORDS (all other tables)
+		lite_connect($host);
+		$check_status_sql = "SELECT lite_patient_id, emr_patient_id, lite_specific_id, emr_specific_id, table_name, entry_date, sync_type FROM m_push_status WHERE push_flag ='Y' AND sync_type='N'";
+		$new_entry_array = get_data_array($check_status_sql);
+		if($new_entry_array!=NULL || $new_consult_array!=''){
+			ehr_connect();
+			$array_m_push_update = array();
+				
+			foreach($new_entry_array as $entry_array => $new_entry){
+				$new_id = '';
+				$insert_text = insert_values($new_entry, $new_id);
+				insert_query($insert_text, $new_entry[4]);
+					
+				$push_data_array = array($new_entry[0], $new_entry[1], $new_entry[2],$new_id,$new_entry[4],$new_entry[5],'N', $new_entry[6]);
+				array_push($array_m_push_update,$push_data_array);
+				unset($push_data_array);
+				$new_record_count += 1;
+			}
+			update_m_push($array_m_push_update, 'new');
+			unset($array_m_push_update);
+			
+		}
+		
+		//UPDATE RECORDS
+		$update_record_count = 0;
+		lite_connect($host);
+		$check_status_sql = "SELECT lite_patient_id, emr_patient_id, lite_specific_id, emr_specific_id, table_name, entry_date, sync_type FROM m_push_status WHERE push_flag ='Y' AND sync_type='U'";
+		$update_array = get_data_array($check_status_sql);
+		if($update_array!=NULL || $update_array!=''){
+			ehr_connect();
+			$array_m_push_update = array();
+			
+			foreach($update_array as $up_array => $update_value){
+				$update_text = update_values($update_value);
+				$where_text = where_clause($update_value);
+				$update_query = mysql_query("UPDATE $update_value[4] SET $update_text WHERE $where_text") or die("Error 110 : " .mysql_error());
+				
+				$push_data_array = array($update_value[0], $update_value[1], $update_value[2],$update_value[3],$update_value[4],$update_value[5],'N', $update_value[6]);
+				array_push($array_m_push_update,$push_data_array);
+				unset($push_data_array);
+				$update_record_count += 1;
+				
+			}
+			update_m_push($array_m_push_update, 'update');
+			unset($array_m_push_update);
+		
+		}
+		
+		//DELETE RECORDS
+		$delete_record_count = 0;
+		lite_connect($host);
+		$check_status_sql = "SELECT lite_patient_id, emr_patient_id, lite_specific_id, emr_specific_id, table_name, entry_date, sync_type FROM m_push_status WHERE push_flag ='Y' AND sync_type='D'";
+		$delete_array = get_data_array($check_status_sql);
+		if($delete_array!=NULL || $delete_array!=''){
+			ehr_connect();
+			$array_m_push_update = array();
+			
+			foreach($delete_array as $del_array => $delete_value){
+				$delete_text = where_clause($delete_value);
+				$delete_query = mysql_query("DELETE FROM $delete_value[4] WHERE $delete_text") or die("Error 132 : " .mysql_error());
+				
+				if($delete_query){
+					echo "SUCCESS";
+				}else{
+					echo "FAILED";
+				}
+				$push_data_array = array($update_value[0], $update_value[1], $update_value[2],$update_value[3],$update_value[4],$update_value[5],'N', $update_value[6]);
+				array_push($array_m_push_update,$push_data_array);
+				unset($push_data_array);
+				$delete_record_count += 1;
+			}
+			update_m_push($array_m_push_update, 'update');
+			unset($array_m_push_update);
+			
+		}
+		
+		//if($new_record_count!=0 || $update_record_count!=0 || $delete_record_count!=0){
+			echo "You have successfully Synced : <br />";
+			echo "<span style='padding: 0 20px 0 20px; width: 120px; display: inline-block;'>New Records </span>= $new_record_count <br />";
+			echo "<span style='padding: 0 20px 0 20px; width: 120px; display: inline-block;'>Updated Records </span>= $update_record_count <br />";
+			echo "<span style='padding: 0 20px 0 20px; width: 120px; display: inline-block;'>Deleted Records </span>= $delete_record_count";
+		//}
+	}else{
+		echo "<form name='lite2-sync' method='post' action=''>";
+		echo "Select user to Sync : ";
+			echo "<select name='sync_user'>";
+				echo "<option value='localhost'>Localhost</option>";
+				echo "<option value='sample'>Sample</option>";
+			echo "</select>";
+			echo "<input type='submit' />";
+		echo "</form>";
+	}
+	
+	function insert_query(){
+		if (func_num_args()>0) {
+			$arg_list = func_get_args();
+			$list = $arg_list[0];
+			$table_name = $arg_list[1];
+		}
+		//$insert_sample = "INSERT INTO $table_name VALUES($list)";
+		//echo $insert_sample . "<br />";
+		$insert_sql = mysql_query("INSERT INTO $table_name VALUES($list)") or die("Error 21 : ".mysql_error());
+	}
+		
+	function get_new_id(){
+		if (func_num_args()>0) {
+			$arg_list = func_get_args();
+			$list = $arg_list[0];
+		}
+			
+		$cur_prime_key_sql = mysql_query("SELECT * FROM $list[4]") or die("Error 68 : ".mysql_error());
+		$cur_prime_key = mysql_field_name($cur_prime_key_sql,0);
+			
+		$new_id_sql = mysql_query("SELECT $cur_prime_key AS new_id FROM $list[4] ORDER BY $cur_prime_key DESC LIMIT 0,1") or die("Error 71 : ".mysql_error());
+		
+		if(mysql_num_rows($new_id_sql)==0){
+			$new_id = 1;
+		}else{
+			$new_id_result = mysql_fetch_array($new_id_sql);	
+			$new_id = $new_id_result['new_id'] + 1;
+		}
+
+		return $new_id;
+	}
+		
+	function update_m_push(){
+		lite_connect($host);
+		if (func_num_args()>0) {
+			$arg_list = func_get_args();
+			$list = $arg_list[0];
+			$type = $arg_list[1];
+		}
+		//foreach list[0];
+		foreach($list as $key => $value){
+			switch ($type){
+				case 'newpatient':
+					$update_patient_id = mysql_query("UPDATE m_push_status SET emr_patient_id=$value[1] WHERE lite_patient_id=$value[0] AND emr_patient_id=0") or die("Error 213 : " .mysql_error());
+					$update_sql = "UPDATE m_push_status SET push_flag='N' WHERE lite_patient_id=$value[0] AND lite_specific_id =0";
+					//echo $update_sql;
+					break;
+				case 'update':
+					$update_sql = "UPDATE m_push_status SET push_flag='N' WHERE lite_patient_id = '$value[0]' AND emr_patient_id = '$value[1]' AND lite_specific_id='$value[2]' AND table_name='$value[4]' AND entry_date='$value[5]'";
+					break;
+				default:
+					$update_sql = "UPDATE m_push_status SET emr_specific_id=$value[3], push_flag='N' WHERE lite_patient_id = '$value[0]' AND emr_patient_id = '$value[1]' AND lite_specific_id='$value[2]' AND table_name='$value[4]' AND entry_date='$value[5]'";
+					break;
+			}
+			$update_status = mysql_query($update_sql) or die("Error 45 : ".mysql_error());
+		}
+	}
+		
+	function get_data_array($check_status_sql){
+		$check_status_query = mysql_query("$check_status_sql") or die("Error 57: ". mysql_error());
+		if(mysql_num_rows($check_status_query)){
+			//create an array of all the entry in ehr_lite when m_push_status = 'Y'
+			if(!isset($all_array)){
+				$all_array = array();
+			}else{
+				unset($all_array);
+			}
+				
+			while(list($lite_px_id, $emr_px_id, $lite_specific_id, $emr_specific_id, $table_name, $entry_date, $sync_type)=mysql_fetch_array($check_status_query)){
+				$data_array = array($lite_px_id, $emr_px_id, $lite_specific_id, $emr_specific_id, $table_name, $entry_date, $sync_type);
+				
+				$prime_key_sql = mysql_query("SELECT * FROM $table_name") or die("Error 88 :".mysql_error());
+				$prime_key = mysql_field_name($prime_key_sql,0);
+					
+				//Get all information from the specific table name
+				if($table_name=='m_patient'){
+					$get_data_sql = mysql_query("SELECT * FROM $table_name WHERE patient_id ='$lite_px_id'") or die("Error 93: ". mysql_error());
+				}else{
+					$get_data_sql = mysql_query("SELECT * FROM $table_name WHERE $prime_key ='$lite_specific_id' AND patient_id ='$lite_px_id'") or die("Error 95: ". mysql_error());
+				}
+				
+				if(mysql_num_rows($get_data_sql)!=0){
+					$get_data_result = mysql_fetch_array($get_data_sql);
 						
-						if (isset($_REQUEST['submitDate']) && $_REQUEST['submitDate']=='Add New Form')
-						{
-							$sdate1 = strftime("%m/%d/%Y",mktime(0,0,0,$_POST['startMonth'],1,$_POST['year']));
-							$edate1 = strftime("%m/%d/%Y",mktime(0,0,0,($_POST['endMonth']+1),0,$_POST['year']));
-								
-							$newSDate = date("Y-m-d", strtotime($sdate1));
-							$newEDate = date("Y-m-d", strtotime($edate1));
-								
-							$PCB_Provider = $_SESSION['datanode']['name'];
-							$region = $dbase->_getPCBProvider('region');
-							$municipality = $_SESSION['lgu'];
-							$prov = $_SESSION['province'];
-								
-														
-							if ($newSDate > $newEDate)
-							{
-								echo "<script>alert('Start Month is Greater Than End Month')</script>";
+					$field_count = mysql_num_fields($get_data_sql);
+					for($i=0;$i<$field_count;$i++){
+						$field_name = mysql_field_name($get_data_sql, $i);
+						switch($field_name):
+							case 'patient_id':
+								if($emr_px_id==0){
+									array_push($data_array, 'na');
+								}else{
+									array_push($data_array, $emr_px_id);
+								}
+								break;
+							case 'consult_id':
+								$emr_id = get_existing_id('m_consult', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							case 'mc_id':
+								$emr_id = get_existing_id('m_patient_mc', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							case 'fp_id':
+								$emr_id = get_existing_id('m_patient_fp', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							case 'notes_id':
+								$emr_id = get_existing_id('m_consult_fp', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							case 'fp_service_id':
+								$emr_id = get_existing_id('m_patient_fp_method_service', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							case 'dropout_id':
+								$emr_id = get_existing_id('m_patient_fp_dropout', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							case 'family_id':
+								$emr_id = get_existing_id('m_family', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							case 'cct_id':
+								$emr_id = get_existing_id('m_family_cct_members', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							case 'ccdev_id':
+								$emr_id = get_existing_id('m_patient_ccdev', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							case 'request_id':
+								$emr_id = get_existing_id('m_consult_lab', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							case 'ntp_id':
+								$emr_id = get_existing_id('m_patient_ntp', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							case 'symptomatic_id':
+								$emr_id = get_existing_id('m_consult_ntp_symptopmatics', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							case 'report_id':
+								$emr_id = get_existing_id('m_patient_ntp_report', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							case 'reminder_id':
+								$emr_id = get_existing_id('m_consult_reminder', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							case 'fp_px_id':
+								$emr_id = get_existing_id('m_patient_fp_method', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							case 'schedule_id':
+								$emr_id = get_existing_id('m_consult_appointments', $field_name);
+								array_push($data_array, $emr_id);
+								break;
+							default:
+								array_push($data_array, $get_data_result[$i]);
+								break;
+						endswitch;
+					}
+						
+					array_push($all_array,$data_array);
+					unset($data_array);
+					$data_array = array();
+				}
+			}
+		}
+		return $all_array;
+	}
+	
+	function get_existing_id($table_name, $field_id_name){
+		$get_id_sql = mysql_query("SELECT emr_specific_id AS id FROM $table_name AS a JOIN m_push_status b ON a.$field_id_name=b.lite_specific_id WHERE table_name='$table_name'") or die("Error 231 : ".mysql_error());
+		$get_id_result = mysql_fetch_array($get_id_sql);
+		$exist_id = $get_id_result['id'];
+		
+		if( $exist_id==0){
+			$existing_id = 'na';
+		}else{
+			$existing_id = $exist_id;
+		}
+		return($existing_id);
+	}
+	
+	function update_values(){
+		if (func_num_args()>0) {
+			$arg_list = func_get_args();
+			$list = $arg_list[0];
+		}
+		
+		$get_field_name = mysql_query("SELECT * FROM $list[4] LIMIT 1") or die("Error 308 : ". mysql_error());
+		$get_field_count = mysql_num_fields($get_field_name);
+		
+		$update_text = '';
+		
+		for($count=0;$count<$get_field_count;$count++){
+			if($update_text=='' || $update_text==NULL){
+				$int_value = $count + 7;
+				$field_name = mysql_field_name($get_field_name,$count);
+				$update_text = $field_name. " = '".$list[$int_value]."'";
+			}else{
+				$int_value = $count + 7;
+				$field_name = mysql_field_name($get_field_name,$count);
+				$update_text = $update_text. ", ".$field_name. " = '".$list[$int_value]."'";
+			}
+		}
+		return $update_text;
+	}
+	
+	function where_text($field_name, $value, $where_text){
+		if($where_text=='' || $where_text==NULL){
+			$where_text = $field_name." = '".$value."'";
+		}else{
+			$where_text = $where_text. " AND " .$field_name." = '".$value."'";
+		}
+		return $where_text;
+	}
+	
+	function where_clause(){
+		if (func_num_args()>0) {
+			$arg_list = func_get_args();
+			$list = $arg_list[0];
+		}
+		
+		$get_field_name = mysql_query("SELECT * FROM $list[4] LIMIT 1") or die("Error 308 : ". mysql_error());
+		
+		$get_field_count = mysql_num_fields($get_field_name);
+		$where_text = '';
+		$where_text = '';
+		for($i=0;$i<$get_field_count;$i++){
+			$field_name = mysql_field_name($get_field_name, $i);
+			switch($field_name):
+				case 'patient_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'consult_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'mc_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'fp_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'notes_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'fp_service_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'dropout_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'family_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'cct_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'ccdev_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'request_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'ntp_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'symptomatic_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'report_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'reminder_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'fp_px_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				case 'schedule_id':
+					$value = $i + 7;
+					$where_text = where_text($field_name, $list[$value], $where_text);
+					break;
+				default:
+					break;
+			endswitch;
+		}
+		
+		return $where_text;
+	}
+	
+	function insert_values(){
+		if (func_num_args()>0) {
+			$arg_list = func_get_args();
+			$list = $arg_list[0];
+			$id = $arg_list[1];
+		}
+			
+		$insert_text = '';
+		$field_count = count($list);
+		
+		if($id=='' || $id==NULL){
+			for($insert_count=7;$insert_count<$field_count;$insert_count++){
+				$insert_text = "'".$list[$insert_count]."'";
+			
+				if(!$list[$insert_count]){
+					$insert_text = $insert_text.", ''";
+				}else{
+					$insert_text = $insert_text.", '".$list[$insert_count]."'";
+				}
+			}
+		}else{
+			for($insert_count=7;$insert_count<$field_count;$insert_count++){
+				if($insert_count==7){
+					if(!$list[$insert_count]){
+						$insert_text = '';
+					}else{
+						if($list[4]=='m_patient_ntp'){
+							$insert_text = "'".$list[1]."'";
+						}else{
+							if($id=='other'){
+								$insert_text = "'".$list[$insert_count]."'";
+							}else{
+								$insert_text = "'".$id."'";
 							}
-							
-							$arrValue = array(1,
-												2,
-												3,
-												4,
-												5,
-												6,
-												7,
-												8,
-												9,
-												10,
-												11,
-												12,
-												13,
-												14,
-												15,
-												16,
-												17,
-												18,
-												19,
-												20,
-												21,
-												22,
-												23,
-												24,
-												25,
-												26,
-												27,
-												28,
-												29,
-												30,
-												31,
-												32,
-												33,
-												34,
-												35,
-												36,
-												37,
-												38,
-												39,
-												40,
-												41,
-												42,
-												43,
-												44,
-												45,
-												46,
-												47,
-												48,
-												49,
-												50,
-												51,
-												52,
-												53,
-												54,
-												55,
-												56,
-												57,
-												58,
-												59,
-												60,
-												61,
-												62);
-							
-							_generateXML('A2', 'm_consult_philhealth_a2', $arrValue);
-						
 						}
-						else
-						{
-							$PCB_Provider = '';
-							$region = '';
-							$municipality = '';
-							$prov = '';
-							$newSDate = ' ';
-							$newEDate = ' ';
+					}
+				}else{
+					if($list[4]=='m_patient_ntp'){
+						if($insert_count==8){
+							$insert_text = $insert_text.", '".$id."'";
+						}else{
+							$insert_text = $insert_text.", '".$list[$insert_count]."'";
 						}
-							
-						
-				echo "<br />
-						<input type='submit' name='submitDate' value='Add New Form'><hr />
-						<br />
-					</div>
-					<div id='facility' class='width750 center'>
-						<h4 class='center'>Name of Health Care Facility<br />
-						<input style='text-align:center;' type='text' size=25 name='nameHCF' value='$PCB_Provider'></h4>
-						<br />
-					</div>
-						
-					<div class='width750'>
-						<hr /><h4 class='center'>I. PCB Provider Data</h4><hr />
-						<br />
-						<p class='indent200'><span class='width110'><label>Region: </label></span><input type='text' name='region' value='$region'><br />
-						<span class='width110'><label>Province: </label></span><input type='text' name='prov' value='$prov'><br />
-						<span class='width110'><label>Municipality: </label></span><input type='text' name='municipality' value=$municipality></p>
-						<br /><br />
-						<h4>No. of Assigned Families:</h4><br />
-						<p class='columns2 indent90'>						
-						<span class='width110'><label>SP-NHTS: </label></span><input type='text' name='nhts' size=5 value=".($dbase->_countMemberByType('SP-NHTS',$newSDate, $newEDate)==null ? 0 : $dbase->_countMemberByType('SP-NHTS',$newSDate, $newEDate))."><br />
-						<span class='width110'><label>SP-LGU: </label></span><input type='text' name='lgu' size=5 value=0><br />
-						<span class='width110'><label>SP-NGA: </label></span><input type='text' name='nga' size=5 value=0><br />
-						<span class='width110'><label>SP-Private: </label></span><input type='text' name='private' size=5 value=0><br />
-						<span class='width110'><label>IPP-OG: </label></span><input type='text' name='og' size=5 value=0><br />
-						<span class='width110'><label>IPP-OFW: </label></span><input type='text' name='ofw' size=5 value=".($dbase->_countMemberByType('IPP-OFW',$newSDate, $newEDate)==null ? 0 : $dbase->_countMemberByType('IPP-OFW',$newSDate, $newEDate))."><br />
-						</p>
-						<br />
-						<p class='center'><label>Non-PHIC Members: </label><input type='text' name='nonphic' size=5 value=".($dbase->_countMemberByType('NON-PHIC',$newSDate, $newEDate)==null ? 0 : $dbase->_countMemberByType('NON-PHIC',$newSDate, $newEDate))."></p><br />
-					</div>
-					
-					<div class='width750'>
-						<hr /><h4 class='center'>II. Age - Sex Distribution</h4><hr />
-						<br />
-						<table class='center'>
-							<tr>
-								<th rowspan='2' width='200px'>Age Group</th>
-								<th colspan='3' width='300px'>Members and Dependents</th>
-							</tr>
-							<tr>
-								
-								<th width='100px'>Male</th>
-								<th width='100px'>Female</th>
-								<th width='100px'>Total</th>
-							</tr>
-							<tr>
-								<td>0-1 Year</td>
-								<td><input type='text' name='asMale' size=4 value=".$dbase->_countTotalMemDep('M',$newSDate, $newEDate, 1)."></td>
-								<td><input type='text' name='asFemale' size=4 value=".$dbase->_countTotalMemDep('F',$newSDate, $newEDate, 1)."></td>
-								<td><input type='text' name='0total' size=4 value=".$dbase->_countTotalMemDep('',$newSDate, $newEDate, 1)."></td>
-							</tr>
-							<tr>
-								<td>2-5 Years</td>
-								<td><input type='text' name='asMale' size=4 value=".$dbase->_countTotalMemDep('M',$newSDate, $newEDate, 2, 5)."></td>
-								<td><input type='text' name='asFemale' size=4 value=".$dbase->_countTotalMemDep('F',$newSDate, $newEDate, 2, 5)."></td>
-								<td><input type='text' name='2total' size=4 value=".$dbase->_countTotalMemDep('',$newSDate, $newEDate, 2, 5)."></td>
-							</tr>
-							<tr>
-								<td>6-15 Years</td>
-								<td><input type='text' name='asMale' size=4 value=".$dbase->_countTotalMemDep('M',$newSDate, $newEDate, 6, 15)."></td>
-								<td><input type='text' name='asFemale' size=4 value=".$dbase->_countTotalMemDep('F',$newSDate, $newEDate, 6, 15)."></td>
-								<td><input type='text' name='6total' size=4 value=".$dbase->_countTotalMemDep('',$newSDate, $newEDate, 6, 15)."></td>
-							</tr>
-							<tr>
-								<td>16-24 Years</td>
-								<td><input type='text' name='asMale' size=4 value=".$dbase->_countTotalMemDep('M',$newSDate, $newEDate, 16, 24)."></td>
-								<td><input type='text' name='asFemale' size=4 value=".$dbase->_countTotalMemDep('F',$newSDate, $newEDate, 16, 24)."></td>
-								<td><input type='text' name='16total' size=4 value=".$dbase->_countTotalMemDep('',$newSDate, $newEDate, 16, 24)."></td>
-							</tr>
-							<tr>
-								<td>25-59 Years</td>
-								<td><input type='text' name='asMale' size=4 value=".$dbase->_countTotalMemDep('M',$newSDate, $newEDate, 25, 59)."></td>
-								<td><input type='text' name='asFemale' size=4 value=".$dbase->_countTotalMemDep('F',$newSDate, $newEDate, 25, 59)."></td>
-								<td><input type='text' name='25total' size=4 value=".$dbase->_countTotalMemDep('',$newSDate, $newEDate, 25, 59)."></td>
-							</tr>
-							<tr>
-								<td>60 Years and Above</td>
-								<td><input type='text' name='asMale' size=4 value=".$dbase->_countTotalMemDep('M',$newSDate, $newEDate, 60)."></td>
-								<td><input type='text' name='asFemale' size=4 value=".$dbase->_countTotalMemDep('F',$newSDate, $newEDate, 60)."></td>
-								<td><input type='text' name='60total' size=4 value=".$dbase->_countTotalMemDep('',$newSDate, $newEDate, 60)."></td>
-							</tr>
-							<tr>
-								<td></td>
-								<td colspan='3'><hr / ><hr / ></td>
-								
-							</tr>
-							<tr>
-								<th>TOTAL</th>
-								<td><input type='text' name='maleTotal' size=4 value=".$dbase->_countTotalMemDep('M',$newSDate, $newEDate)."></td>
-								<td><input type='text' name='femaleTotal' size=4 value=".$dbase->_countTotalMemDep('F',$newSDate, $newEDate)."></td>
-								<td><input type='text' name='astotal' size=4 value=".$dbase->_countTotalMemDep('',$newSDate, $newEDate)."></td>
-							</tr>
-						</table>
-						<br /><br />
-					</div>
-
-					<div class='width750'>
-						<hr /><h4 class='center'>III. Primary Preventive Services</h4><hr />
-						<br />
-						<table class='center'>
-							<tr>
-								<th rowspan='2' width='300px'></th>
-								<th colspan='2' width='200px'># of Members and Dependents</th>
-							</tr>
-							<tr>
-								<th width='100px'>Members</th>
-								<th width='100px'>Dependents</th>
-							</tr>
-							<tr>
-								<th>Breast Cancer Screening<br />Female, 25 yearls old and above</th>
-								<td><input type='text' name='breastMember' size=4 value=0></td>
-								<td><input type='text' name='breastDependent' size=4 value=0></td>
-							</tr>
-							<tr>
-								<th>Cervical Cancer Screening<br />Female, 25 to 55 years old with intact uterus</th>
-								<td><input type='text' name='cervicalMember' size=4 value=".$dbase->_ppsScreening('CCS', 'Member', $newSDate, $newEDate)."></td>
-								<td><input type='text' name='cervicalDependent' size=4 value=".$dbase->_ppsScreening('CCS', 'Dependent', $newSDate, $newEDate)."></td>
-							</tr>
-						</table>
-						<br /><br />
-					</div>
-
-					<div class='width750'>
-						<hr /><h4 class='center'>IV. Diabetes Mellitus</h4><hr />
-						<br />
-						<table class='width650'>
-							<tr class='border'>
-								<th rowspan='3' width='350px'>Cases</th>
-								<th colspan='6' width='300px'># of Members and Dependents</th>
-							</tr>
-							<tr class='border'>
-								<th colspan='2' width='100px'>Member</th>
-								<th colspan='2' width='100px'>Dependent</th>
-								<th colspan='2' width='100px'>Total</th>
-							</tr>
-							<tr class='border'>
-								<th width='50px'>M</th>
-								<th width='50px'>F</th>
-								<th width='50px'>M</th>
-								<th width='50px'>F</th>
-								<th width='50px'>M</th>
-								<th width='50px'>F</th>
-							</tr>
-							<tr class='border'>
-								<td><h4>with symptoms/signs of polyuria, polydipsia, weight loss</h4></td>
-								<td class='center inputWidth'><input type='text' name='symmemMale' size=2 value=0></td>
-								<td class='center inputWidth'><input type='text' name='symmemFemale' size=2 value=0></td>
-								<td class='center inputWidth'><input type='text' name='symdepMale' size=2 value=0></td>
-								<td class='center inputWidth'><input type='text' name='symdepFemale' size=2 value=0></td>
-								<td class='center inputWidth'><input type='text' name='symtotMale' size=2 value=0></td>
-								<td class='center inputWidth'><input type='text' name='symtotFemale' size=2 value=0></td>
-							</tr>
-							<tr class='border'>
-								<td><h4>Waist circumference</h4></td>
-								<td colspan='6'></td>
-							</tr>
-							<tr class='border'>
-								<td><span class='indent70'>&ge;80cm (female)</span></td>
-								<td></td>
-								<td class='center inputWidth'><input type='text' name='80memFemale' size=2 value=0></td>
-								<td></td>
-								<td class='center inputWidth'><input type='text' name='80depFemale' size=2 value=0></td>
-								<td></td>
-								<td class='center inputWidth'><input type='text' name='80totFemale' size=2 value=0></td>
-							</tr>
-							<tr class='border'>
-								<td><span class='indent70'>&ge;90cm (male)</span></td>
-								<td class='center inputWidth'><input type='text' name='90memMale' size=2 value=0></td>
-								<td></td>
-								<td class='center inputWidth'><input type='text' name='90depMale' size=2 value=0></td>
-								<td></td>
-								<td class='center inputWidth'><input type='text' name='90totMale' size=2 value=0></td>
-								<td></td>
-							</tr>
-							<tr class='border'>
-								<td><h4>History of diagnosis of diabetes</h4></td>
-								<td class='center inputWidth'><input type='text' name='historymemMale' size=2 value=".$dbase->_history('diabe', 'Member', 'M', '' , $newSDate, $newEDate)."></td>
-								<td class='center inputWidth'><input type='text' name='historymemFemale' size=2 value=".$dbase->_history('diabe', 'Member', 'F', '' , $newSDate, $newEDate)."></td>
-								<td class='center inputWidth'><input type='text' name='historydepMale' size=2 value=".$dbase->_history('diabe', 'Dependent', 'M', '' , $newSDate, $newEDate)."></td>
-								<td class='center inputWidth'><input type='text' name='historydepFemale' size=2 value=".$dbase->_history('diabe', 'Dependent', 'F', '' , $newSDate, $newEDate)."></td>
-								<td class='center inputWidth'><input type='text' name='historytotMale' size=2 value=".$dbase->_history('diabe', '', 'M', '' , $newSDate, $newEDate)."></td>
-								<td class='center inputWidth'><input type='text' name='historytotFemale' size=2 value=".$dbase->_history('diabe', '', 'F', '' , $newSDate, $newEDate)."></td>
-							</tr>
-							<tr class='border'>
-								<td><h4>Intake of oral hypoglycemic agents</h4></td>
-								<td class='center inputWidth'><input type='text' name='intakememMale' size=2 value=0></td>
-								<td class='center inputWidth'><input type='text' name='intakememFemale' size=2 value=0></td>
-								<td class='center inputWidth'><input type='text' name='intakedepMale' size=2 value=0></td>
-								<td class='center inputWidth'><input type='text' name='intakedepFemale' size=2 value=0></td>
-								<td class='center inputWidth'><input type='text' name='intaketotMale' size=2 value=0></td>
-								<td class='center inputWidth'><input type='text' name='intaketotFemale' size=2 value=0></td>
-							</tr>
-						</table>
-						<br /><br />
-					</div>
-
-					<div class='width750'>
-						<hr /><h4 class='center'>V. Hypertension</h4><hr />
-						<br />
-						<table class='width700'>
-							<tr class='border'>
-								<th rowspan='4' width='210px'>Cases</th>
-								<th colspan='7' width='490px'># of Members and Dependents</th>
-							</tr>
-							<tr class='border'>
-								<th colspan='3' width='210px'>Members</th>
-								<th colspan='3' width='210px'>Dependents</th>
-								<th rowspan='3' width='70px'>Total</th>
-							</tr>
-							<tr class='border'>
-								<th rowspan='2' width='60px'>Male</th>
-								<th colspan='2' width='150px'>Female</th>
-								<th rowspan='2' width='60px'>Male</th>
-								<th colspan='2' width='150px'>Female</th>
-							</tr>
-							<tr class='border'>
-								<th width='75px'>Non Pregnant</th>
-								<th width='75px'>Pregnant</th>
-								<th width='75px'>Non Pregnant</th>
-								<th width='75px'>Pregnant</th>
-							</tr>
-							<tr class='border'>
-								<td><h4>Adult with<br />BP < 140/90 mmHg</h4></td>
-								<td class='center inputWidth'><input type='text' name='c1memMale' size=4 value=".($dbase->_countHypertension('Prehypertension', 'Member', 'M', '', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Prehypertension', 'Member', 'M', '', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c1memnpFemale' size=4 value=".($dbase->_countHypertension('Prehypertension', 'Member', 'F', 'N', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Prehypertension', 'Member', 'F', 'N', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c1mempFemale' size=4 value=".($dbase->_countHypertension('Prehypertension', 'Member', 'F', 'Y', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Prehypertension', 'Member', 'F', 'Y', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c1depMale' size=4 value=".($dbase->_countHypertension('Prehypertension', 'Dependent', 'M', '', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Prehypertension', 'Dependent', 'M', '', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c1depnpFemale' size=4 value=".($dbase->_countHypertension('Prehypertension', 'Dependent', 'F', 'N', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Prehypertension', 'Dependent', 'F', 'N', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c1deppFemale' size=4 value=".($dbase->_countHypertension('Prehypertension', 'Dependent', 'F', 'Y', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Prehypertension', 'Dependent', 'F', 'Y', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c1Total' size=4 value=".($dbase->_countHypertension('Prehypertension', 'Total', '', '', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Prehypertension', 'Total', '', '', $newSDate, $newEDate))."></td>
-							</tr>
-							<tr class='border'>
-								<td><h4>Adult with<br />BP >/= 140/90 mmHg but less than 180/120 mmHg</h4></td>
-								<td class='center inputWidth'><input type='text' name='c2memMale' size=4 value=".($dbase->_countHypertension('Hypertension Stage 1', 'Member', 'M', '', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Hypertension Stage 1', 'Member', 'M', '', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c2memnpFemale' size=4 value=".($dbase->_countHypertension('Hypertension Stage 1', 'Member', 'F', 'N', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Hypertension Stage 1', 'Member', 'F', 'N', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c2mempFemale' size=4 value=".($dbase->_countHypertension('Hypertension Stage 1', 'Member', 'F', 'Y', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Hypertension Stage 1', 'Member', 'F', 'Y', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c2depMale' size=4 value=".($dbase->_countHypertension('Hypertension Stage 1', 'Dependent', 'M', '', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Hypertension Stage 1', 'Dependent', 'M', '', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c2depnpFemale' size=4 value=".($dbase->_countHypertension('Hypertension Stage 1', 'Dependent', 'F', 'N', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Hypertension Stage 1', 'Dependent', 'F', 'N', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c2deppFemale' size=4 value=".($dbase->_countHypertension('Hypertension Stage 1', 'Dependent', 'F', 'Y', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Hypertension Stage 1', 'Dependent', 'F', 'Y', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c2Total' size=4 value=".($dbase->_countHypertension('Hypertension Stage 1', 'Total', '', '', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Hypertension Stage 1', 'Total', '', '', $newSDate, $newEDate))."></td>
-							</tr>
-							<tr class='border'>
-								<td><h4>Adult with<br />BP > 180/120 mmHg</h4></td>
-								<td class='center inputWidth'><input type='text' name='c3memMale' size=4 value=".($dbase->_countHypertension('Hypertension Stage 2', 'Member', 'M', '', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Hypertension Stage 2', 'Member', 'M', '', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c3memnpFemale' size=4 value=".($dbase->_countHypertension('Hypertension Stage 2', 'Member', 'F', 'N', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Hypertension Stage 2', 'Member', 'F', 'N', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c3mempFemale' size=4 value=".($dbase->_countHypertension('Hypertension Stage 2', 'Member', 'F', 'Y', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Hypertension Stage 2', 'Member', 'F', 'Y', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c3depMale' size=4 value=".($dbase->_countHypertension('Hypertension Stage 2', 'Dependent', 'M', '', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Hypertension Stage 2', 'Dependent', 'M', '', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c3depnpFemale' size=4 value=".($dbase->_countHypertension('Hypertension Stage 2', 'Dependent', 'F', 'N', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Hypertension Stage 2', 'Dependent', 'F', 'N', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c3deppFemale' size=4 value=".($dbase->_countHypertension('Hypertension Stage 2', 'Dependent', 'F', 'Y', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Hypertension Stage 2', 'Dependent', 'F', 'Y', $newSDate, $newEDate))."></td>
-								<td class='center inputWidth'><input type='text' name='c3Total' size=4 value=".($dbase->_countHypertension('Hypertension Stage 2', 'Total', '', '', $newSDate, $newEDate)==null ? 0 : $dbase->_countHypertension('Hypertension Stage 2', 'Total', '', '', $newSDate, $newEDate))."></td>
-							</tr>
-							<tr class='border'>
-								<td><h4>History of diagnosis of hypertension</h4></td>
-								<td class='center inputWidth'><input type='text' name='c4memMale' size=4 value=".$dbase->_history('hypert', 'Member', 'M', '' , $newSDate, $newEDate)."></td>
-								<td class='center inputWidth'><input type='text' name='c4memnpFemale' size=4 value=".$dbase->_history('hypert', 'Member', 'F', 'N' , $newSDate, $newEDate)."></td>
-								<td class='center inputWidth'><input type='text' name='c4mempFemale' size=4 value=".$dbase->_history('hypert', 'Member', 'F', 'Y' , $newSDate, $newEDate)."></td>
-								<td class='center inputWidth'><input type='text' name='c4depMale' size=4 value=".$dbase->_history('hypert', 'Dependent', 'M', '' , $newSDate, $newEDate)."></td>
-								<td class='center inputWidth'><input type='text' name='c4depnpFemale' size=4 value=".$dbase->_history('hypert', 'Dependent', 'F', 'N' , $newSDate, $newEDate)."></td>
-								<td class='center inputWidth'><input type='text' name='c4deppFemale' size=4 value=".$dbase->_history('hypert', 'Dependent', 'F', 'Y' , $newSDate, $newEDate)."></td>
-								<td class='center inputWidth'><input type='text' name='c4sTotal' size=4 value=".$dbase->_history('hypert', 'Total', '', '' , $newSDate, $newEDate)."></td>
-							</tr> 
-							<tr class='border'>
-								<td><h4>Intake of hypertension medicine</h4></td>
-								<td class='center inputWidth'><input type='text' name='c5memMale' size=4 value=0></td>
-								<td class='center inputWidth'><input type='text' name='c5memnpFemale' size=4 value=0></td>
-								<td class='center inputWidth'><input type='text' name='c5mempFemale' size=4 value=0></td>
-								<td class='center inputWidth'><input type='text' name='c5depMale' size=4 value=0></td>
-								<td class='center inputWidth'><input type='text' name='c5depnpFemale' size=4 value=0></td>
-								<td class='center inputWidth'><input type='text' name='c5deppFemale' size=4 value=0></td>
-								<td class='center inputWidth'><input type='text' name='c5ssTotal' size=4 value=0></td>
-							</tr>
-						</table>
-						<br /><br />
-					</div>
-					
-					</form>
-				</div>
-			</div>
-		</body>
-	</html>";
+					}else{
+						if(!$list[$insert_count]){
+							$insert_text = $insert_text.", ''";
+						}else{
+							$insert_text = $insert_text.", '".$list[$insert_count]."'";
+						}
+					}
+				}
+			}
+		}
+		return $insert_text;
+	}
+				
+	function lite_connect($host){
+		$dbconnlite = mysql_connect($host,$_SESSION['dbuser'],$_SESSION['dbpass']) or die(mysql_error());
+		mysql_select_db('lite',$dbconnlite);
+	}
+		
+	function ehr_connect(){
+		$dbconn = mysql_connect("localhost",$_SESSION['dbuser'],$_SESSION['dbpass']) or die(mysql_error());
+		mysql_select_db('chits',$dbconn);
+	}
 ?>
-
