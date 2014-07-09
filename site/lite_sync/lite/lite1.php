@@ -7,11 +7,6 @@ if(isset($_SESSION["userid"])):
 	if($_POST["submit_filter"]):
 		process_submission();
 	endif;
-	if($_POST["submit_export"]):
-		//print_r($_POST);
-		sync_file();
-
-	endif;
 else:
 	echo "<font color='red'>Unauthorized access to this page. Please log in.</font>";
 	echo "<br><a href='$_SERVER[PHP_SELF]'>Try Again</a>";
@@ -27,7 +22,7 @@ function db_connect(){
 function show_connection_details(){
 	$q_user = mysql_query("SELECT user_lastname, user_firstname, user_id FROM game_user ORDER by user_lastname ASC, user_firstname ASC");
 	$q_brgy = mysql_query("SELECT barangay_id, barangay_name FROM m_lib_barangay") or die("Cannot query 21: ".mysql_error());
-	
+
 	echo "<form action='$_SERVER[PHP_SELF]' method='POST'>";
 	echo "<table border='1' width='50%'>";
 	echo "<tr><td>Current active database: </td><td>".$_SESSION["dbname"]."</td></tr>";
@@ -57,7 +52,6 @@ function process_submission(){
 	$_SESSION["tmp_directory"] = '../../sql/';
 	$_SESSION["file_name"] = 'record_push_'.$_POST["sel_user"].'_'.date('Y-m-d').'.sql';
 	$_SESSION["ehr_lite_live"] = 'ehr_lite_live.sql';
-	$_SESSION["ehr_lite_import"] = 'ehr_lite_import.sql';
 
 	//print_r($_POST);
 	create_tmp_sql_file();
@@ -65,17 +59,15 @@ function process_submission(){
 	extract_users($_POST["sel_user"]);		
 	extract_patient_folder_consults();
 	extract_brgy();
-
-	if(create_ehr_lite_sql() && (isset($_POST["sel_barangay"]))):
-		load_import_file();
-	endif;	
+	create_ehr_lite_sql();
 }
 
 
 function create_tmp_sql_file(){
-	if($handle = fopen($_SESSION["tmp_directory"].$_SESSION["file_name"],'w') or die("Cannot write file 67")): 
+	if($handle = fopen($_SESSION["tmp_directory"].$_SESSION["file_name"],'w') or die("Cannot write file 61")):
 		chmod($_SESSION["tmp_directory"].$_SESSION["file_name"],0766);
-	endif;	
+	endif;
+
 }
 
 function extract_users($user_id){ 
@@ -95,11 +87,11 @@ function extract_users($user_id){
 			
 			fwrite($handle,$insert_user."\n"); 
 
-			$clear_user_privilege = "DELETE FROM module_user_location WHERE user_id='$r_user[user_id]';";
+			$clear_user_privilege = "DELETE FROM modules_user_location WHERE user_id='$r_user[user_id]';";
 
 			fwrite($handle,$clear_user_privilege."\n");
 
-			$modify_user_privilege = "REPLACE INTO module_user_location (location_id,user_id) VALUES ('ADM','$r_user[user_id]');";
+			$modify_user_privilege = "REPLACE INTO modules_user_location (location_id,user_id) VALUES ('ADM','$r_user[user_id]');";
 
 			fwrite($handle,$modify_user_privilege."\n");
 
@@ -117,9 +109,8 @@ function extract_patient_folder_consults(){
 	
 	$arr_table = array(); //this shall contain all the tables that passes through the filter
 	$patient_arr = array();
-	
 
-	$get_tables = mysql_query("SHOW TABLES FROM ehr_lite") or die("Cannot query 93: ".mysql_error());
+	$get_tables = mysql_query("SHOW TABLES FROM ".$_SESSION["dbname"]) or die("Cannot query 93: ".mysql_error());
 
 	while(list($table)=mysql_fetch_array($get_tables)){
 		$str_array = explode('_',$table);
@@ -323,8 +314,8 @@ function extract_brgy(){
 
 function create_ehr_lite_sql(){
 
-	if(copy('../../db/'.$_SESSION["ehr_lite_live"],$_SESSION["tmp_directory"].$_SESSION["ehr_lite_import"])): 
-		$ehr_lite_import = fopen($_SESSION["tmp_directory"].$_SESSION["ehr_lite_import"],'a') or die("Cannot open file 320");
+	if(copy('../../db/'.$_SESSION["ehr_lite_live"],$_SESSION["tmp_directory"].'/ehr_lite_import.sql')):
+		$ehr_lite_import = fopen($_SESSION["tmp_directory"].'/ehr_lite_import.sql','a') or die("Cannot open file 320");
 
 		$replace_insert_file = file($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"]);
 
@@ -332,109 +323,10 @@ function create_ehr_lite_sql(){
 		foreach($replace_insert_file as $key=>$value){
 			fwrite($ehr_lite_import,$value);
 		}
-		return 1;
+
 	else:
 		echo "<font color='red'>Cannot create SQL files for import to EHR-lite.</font>";
-		return 0;
 	endif;
 }
 
-function load_import_file(){
-		echo "<table border='1' width='50%'>";
-		echo "<tr><tr><td>";
-		echo "EHR-lite import file is generated and can be downloaded&nbsp;<a href='$_SESSION[tmp_directory]$_SESSION[ehr_lite_import]'>HERE</a>. You can manually upload this import file to the EHR-lite computer.";
-		echo "</td></tr>";
-		echo "<tr><td align='center'><b>OR</b></td></tr>";
-
-		echo "<tr>";
-		echo "<td>";
-		echo "SYNC the EHR-lite export file from this computer to the EHR-lite computer. Please supply the information below and press the EXPORT EHR-LITE DATA button.";
-		echo "</td>";
-		echo "</tr>";
-		
-		
-		echo "<form action='$_SERVER[PHP_SELF]' name='form_sync' method='POST'>";
-		echo "<tr><td>";
-		echo "<table>";
-		echo "<tr><td>IP Address of the EHR-Lite computer</td>";
-		echo "<td><input type='text' name='txt_ip'></input></td></tr>";
-		
-		echo "<tr><td>Name of Database</td>";
-		echo "<td><input type='text' name='txt_db'></input></td></tr>";
-
-		echo "<tr><td>EHR-lite database name</td>";
-		echo "<td>";
-		echo "<input type='text' name='txt_dbname'></input>";
-		echo "</td></tr>";
-
-		echo "<tr><td>EHR-lite database password</td>";
-		echo "<td>";
-		echo "<input type='password' name='txt_dbpwd'></input>";
-		echo "</td></tr>";
-
-		echo "<tr><td>Initials of EHR-lite User (ie. jp (for Jose Rizal))</td>";
-		echo "<td>";
-		echo "<input type='text' name='txt_initial'></input>";
-		echo "</td></tr>";
-
-		
-
-		echo "<tr>";
-		echo "<td colspan='2' align='center'><input type='submit' value='EXPORT EHR-LITE DATA' name='submit_export'></input></td></tr>";
-
-		echo "</table>";
-		echo "</td></tr>";
-		echo "</form>";
-
-		echo "</table>";
-}
-
-function sync_file(){
-	
-
-	if(!isset($_POST["txt_ip"])):
-		echo "Cannot process file export. Please supply the IP address of the EHR-lite computer.";
-	elseif(!isset($_POST["txt_db"])):
-		echo "Cannot process file export. Please supply the name of the database of the EHR-lite";
-	else:
-		if(!file_exists('/var/www/backup')):
-			mkdir('/var/www/backup',0777);
-		endif;
-
-		$str_backup = 'mysqldump -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' '.$_POST["txt_db"].' > /var/www/backup/ehrlite_backup.'.$_POST["txt_initial"].'.'.date('Ymd').'.sql';		
-		exec($str_backup);
-
-		if(file_exists('/var/www/backup/ehrlite_backup.'.$_POST["txt_initial"].'.'.date('Ymd').'.sql')):
-			if(filesize('/var/www/backup/ehrlite_backup.'.$_POST["txt_initial"].'.'.date('Ymd').'.sql')>0):
-					
-					//this code block does a timestampped mirror of the database in the ehr-lite
-					$str_rename_db = 'mysql -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' --execute "DROP DATABASE IF EXISTS '.$_POST["txt_db"].'_'.date('Ymd').'; '.'CREATE DATABASE '.$_POST["txt_db"].'_'.date('Ymd').';"';
-					//echo $str_rename_db;
-					exec($str_rename_db);					
-					$str_export = 'mysql -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' '.$_POST["txt_db"].'_'.date('Ymd').' < /var/www/backup/ehrlite_backup.'.$_POST["txt_initial"].'.'.date('Ymd').'.sql';										
-					//echo $str_export;
-					exec($str_export);
-
-
-					//this code block drops the ehr_lite_live database, re-creates and dumps the updated database
-					$str_drop_db = 'mysql -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' --execute "DROP DATABASE IF EXISTS '.$_POST["txt_db"].'; '.'CREATE DATABASE '.$_POST["txt_db"].';"';
-
-					$str_export_lite = 'mysql -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' '.$_POST["txt_db"].' < '.$_SESSION["tmp_directory"].$_SESSION["ehr_lite_import"];
-
-					exec($str_drop_db);
-					exec($str_export_lite);
-
-					echo "<script language='Javascript'>";
-					echo "window.alert('Sync and file import completed. Please check the EHR-lite computer if the database was successfuly been loaded.')";
-					echo "</script>";
-			else:
-					echo "<script language='Javascript'>";
-					echo "window.alert('Sync and file import not completed. Please check information you entered and re-sync again.')";
-					echo "</script>";
-	
-			endif;
-		endif;
-
-	endif;
-}
 ?>
