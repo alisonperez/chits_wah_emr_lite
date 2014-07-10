@@ -119,7 +119,7 @@ function extract_patient_folder_consults(){
 	$patient_arr = array();
 	
 
-	$get_tables = mysql_query("SHOW TABLES FROM ehr_lite") or die("Cannot query 93: ".mysql_error());
+	$get_tables = mysql_query("SHOW TABLES FROM ".$_SESSION["dbname"]) or die("Cannot query 93: ".mysql_error());
 
 	while(list($table)=mysql_fetch_array($get_tables)){
 		$str_array = explode('_',$table);
@@ -132,7 +132,7 @@ function extract_patient_folder_consults(){
 
 	if(isset($_POST["sel_barangay"])):
 		$patient_arr = get_family_folders();	//return the patient_ids
-		get_patient_records($patient_arr);
+		get_patient_records($patient_arr); 
 		get_patient_program_enrollment($patient_arr);
 	else:
 		echo "Please select barangay/s.";
@@ -146,7 +146,7 @@ function get_family_folders(){
 	$patient_arr = array();	//stores the patient_id's
 	$family_arr = array();
 
-	if(in_array('all',$_POST["sel_barangay"])): 
+	if(in_array('all',$_POST["sel_barangay"])):
 		$q_family_address = mysql_query("SELECT * FROM m_family_address");
 	else: 
 		$str_brgy = "'".implode("','",$_POST["sel_barangay"])."'";
@@ -170,7 +170,11 @@ function get_family_folders(){
 		foreach($family_arr as $key=>$family_id){
 			insert_family($family_id);
 			insert_family_cct($family_id);
-			$patient_arr = insert_family_members($family_id);	//get the patient_id's
+			$patient_arr_fam = insert_family_members($family_id);	//get the patient_id's
+			foreach($patient_arr_fam as $key=>$value){
+				array_push($patient_arr,$value);
+			}
+			
 		}
 	endif;
 
@@ -234,8 +238,8 @@ function insert_family_members($family_id){
 }
 
 
-function get_patient_records($patient_arr){ 
-	foreach($_SESSION["arr_table"] as $key=>$table_name){
+function get_patient_records($patient_arr){
+	foreach($_SESSION["arr_table"] as $key=>$table_name){ 
 		$check_field = mysql_query("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='$_SESSION[dbname]' AND TABLE_NAME='$table_name' AND COLUMN_NAME='patient_id'") or die("Cannot query 215: ".mysql_error());
 
 		if(mysql_num_rows($check_field)!=0):
@@ -256,6 +260,7 @@ function get_patient_records($patient_arr){
 				if(mysql_num_rows($get_records)!=0):
 					//get the fields of the table
 					while($r_records = mysql_fetch_array($get_records)){ 
+						
 						$handle = fopen($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"],'a') or die("Cannot open file 236");
 						
 						$arr_fields_result = array(); 

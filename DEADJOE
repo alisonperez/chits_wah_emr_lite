@@ -27,3 +27,24 @@ _dbselect.php
 _dbselect.php
 config.xml
 config.xml
+
+*** These modified files were found in JOE when it aborted on Thu Jul 10 17:31:51 2014
+*** JOE was aborted because the terminal closed
+
+*** File '(Unnamed)'
+display_error
+upload
+ehr_lite_import
+
+*** File '(Unnamed)'
+.git/COMMIT_EDITMSG
+.git/COMMIT_EDITMSG
+.git/COMMIT_EDITMSG
+_dbselect.php
+globals.php
+index.php
+index.php
+index.php
+.git/COMMIT_EDITMSG
+.git/COMMIT_EDITMSG
+.git/COMMIT_EDITMSG
