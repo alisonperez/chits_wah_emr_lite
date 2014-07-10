@@ -8,7 +8,7 @@ die("Please login to access the EHR-Lite Synchronization interfaces");
 		echo "<head><title>WAH EHR-Lite Data Synchronization</title></head>";
 		echo '<frameset rows="200px, *" frameborder="0">';
 			echo '<frame noresize="noresize" src="header.php" scrolling="no">';
-			echo '<frame src="lite/lite1.php" name="body" scrolling-x="yes">';
+			echo '<frame src="lite1.php" name="body" scrolling-x="yes">';
 		echo '</frameset>';
 	echo "</html>";
 		

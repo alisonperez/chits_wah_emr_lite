@@ -129,11 +129,11 @@ function extract_patient_folder_consults(){
 	}
 
 	$_SESSION["arr_table"] = $arr_table;
-	
+
 	if(isset($_POST["sel_barangay"])):
 		$patient_arr = get_family_folders();	//return the patient_ids
 		get_patient_records($patient_arr);
-		
+		get_patient_program_enrollment($patient_arr);
 	else:
 		echo "Please select barangay/s.";
 	endif;
@@ -240,8 +240,7 @@ function get_patient_records($patient_arr){
 
 		if(mysql_num_rows($check_field)!=0):
 			$arr_fields = array();
-
-
+			
 			$get_cols = mysql_query("SHOW COLUMNS FROM $table_name") or die("Cannot query 218: ".mysql_error());
 			
 			while($arr_table = mysql_fetch_array($get_cols)){ //print_r($arr_table);
@@ -273,12 +272,42 @@ function get_patient_records($patient_arr){
 					}
 					
 					fclose($handle);
-
+			
 				endif;
 			}
 		endif;
 	}
 
+}
+
+function get_patient_program_enrollment($patient_arr){ //pulling the m_consult_ptgroup
+		foreach($patient_arr as $key=>$value){
+			$q_consult = mysql_query("SELECT consult_id FROM m_consult WHERE patient_id='$value'") or die("Cannot query 285 :".mysql_error());
+
+			if(mysql_num_rows($q_consult)!=0):
+				while(list($consult_id)=mysql_fetch_array($q_consult)){
+
+					$q_ptgroup = mysql_query("SELECT ptgroup_id,consult_id,ptgroup_timestamp,user_id FROM m_consult_ptgroup WHERE consult_id='$consult_id'") or die("Cannot query 289: ".mysql_error());
+
+					if(mysql_num_rows($q_ptgroup)!=0):
+
+
+						while(list($ptgroup_id,$consult_id,$ptgroup_timestamp,$user_id)=mysql_fetch_array($q_ptgroup)){
+							$handle = fopen($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"],'a') or die("Cannot open file 293");
+							
+							$str_insert = "REPLACE INTO m_consult_ptgroup (ptgroup_id,consult_id,ptgroup_timestamp,user_id) VALUES ("."'".$ptgroup_id."',"."'".$consult_id."','".$ptgroup_timestamp."','".$user_id."');";
+
+							fwrite($handle,$str_insert."\n") or die("Cannot write m_consult_ptgroup");
+
+						}
+						fclose($handle);
+					else:
+
+					endif;
+				}
+			endif;
+		
+		}
 }
 
 function extract_brgy(){
