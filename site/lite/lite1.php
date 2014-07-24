@@ -444,7 +444,8 @@ function sync_file(){
 					//this code block does a timestampped mirror of the database in the ehr-lite
 					$str_rename_db = 'mysql -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' --execute "DROP DATABASE IF EXISTS '.$_POST["txt_db"].'_'.date('Ymd').'; '.'CREATE DATABASE '.$_POST["txt_db"].'_'.date('Ymd').';"';
 					//echo $str_rename_db;
-					exec($str_rename_db);					
+					exec($str_rename_db);	
+					
 					$str_export = 'mysql -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' '.$_POST["txt_db"].'_'.date('Ymd').' < /var/www/backup/ehrlite_backup.'.$_POST["txt_initial"].'.'.date('Ymd').'.sql';										
 					//echo $str_export;
 					exec($str_export);
@@ -454,9 +455,12 @@ function sync_file(){
 					$str_drop_db = 'mysql -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' --execute "DROP DATABASE IF EXISTS '.$_POST["txt_db"].'; '.'CREATE DATABASE '.$_POST["txt_db"].';"';
 
 					$str_export_lite = 'mysql -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' '.$_POST["txt_db"].' < '.$_SESSION["tmp_directory"].$_SESSION["ehr_lite_import"];
+					
+					$str_import_m_push = 'mysql -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' --execute "INSERT '.$_POST["txt_db"].'.m_push_status SELECT * FROM '.$_POST["txt_db"].'_'.date('Ymd').'.m_push_status;"';				
 
 					exec($str_drop_db);
 					exec($str_export_lite);
+					exec($str_import_m_push);
 
 					echo "<script language='Javascript'>";
 					echo "window.alert('Sync and file import completed. Please check the EHR-lite computer if the database was successfuly been loaded.')";
