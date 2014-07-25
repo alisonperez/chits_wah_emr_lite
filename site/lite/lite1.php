@@ -29,26 +29,28 @@ function show_connection_details(){
 	$q_brgy = mysql_query("SELECT barangay_id, barangay_name FROM m_lib_barangay") or die("Cannot query 21: ".mysql_error());
 	
 	echo "<form action='$_SERVER[PHP_SELF]' method='POST'>";
-	echo "<table border='1' width='50%'>";
-	echo "<tr><td>Current active database: </td><td>".$_SESSION["dbname"]."</td></tr>";
-	echo "<tr><td>Select End User Account to Sync</td>";
-	echo "<td><select name='sel_user'>";	
+	
+	echo "<table width='60%' align='center' style='background-color: #FFFFFF;font-family: verdana,arial;font-size:20;'>";
+	echo "<tr><td colspan='2' style='background-color:#0000FF;text-align:center;color:white;'>1. CREATE FILE FOR DATA SYNC</td></tr>";
+	echo "<tr style='background-color: #99CCFF; '><td>Current active database </td><td>".$_SESSION["dbname"]."</td></tr>";
+	echo "<tr style='background-color: #99CCFF;'><td>Select End User Account to Sync</td>";
+	echo "<td><select name='sel_user' style='font-size:18;background-color:#FFFFCC;'>";	
 	echo "<option value='all'>All User Accounts</option>";
 	while(list($lname,$fname,$uid)=mysql_fetch_array($q_user)){
 		echo "<option value='$uid'>$lname, $fname</option>";
 	}
 	echo "</select></td></tr>";
 
-	echo "<tr><td>Select Barangay/s to Sync</td>";
-	echo "<td><select name='sel_barangay[]' size='10' multiple='multiple'>";
+	echo "<tr style='background-color: #99CCFF;'><td>Select Barangay/s to Sync</td>";
+	echo "<td><select name='sel_barangay[]' size='10' multiple='multiple' style='font-size:18;background-color:#FFFFCC ;'>";
 	echo "<option value='all'>All Barangays</option>";
 	while(list($brgy_id,$brgy_name)=mysql_fetch_array($q_brgy)){
 		echo "<option value='$brgy_id'>$brgy_name</option>";
 	}
 	echo "</select></td></tr>";
 
-	echo "<tr><td colspan='2'>Note: Only family folders, patients and consultations from the selected barangays will be included in the sync file.</td>";
-	echo "<tr><td colspan='2'><input type='submit' name='submit_filter' value='Create Sync File'></td></tr>";	
+	echo "<tr style='background-color: #99CCFF;font-family: verdana,arial;'><td colspan='2'>Note: Only family folders, patients and consultations from the selected barangays will be included in the sync file.</td>";
+	echo "<tr align='center'><td colspan='2'><input type='submit' name='submit_filter' value='Create Sync File' style='border: 1px solid #666;font-size:20px;'></td></tr>";	
 	echo "</table>";
 	echo "</form>";
 }
@@ -374,14 +376,15 @@ function create_ehr_lite_sql(){
 }
 
 function load_import_file(){
-		echo "<table border='1' width='50%'>";
-		echo "<tr><tr><td>";
+		echo "<table align='center' width='60%' style='background-color: #FFFFFF;font-family: verdana,arial;font-size:20;'>";
+		echo "<tr style='background-color:#0000FF;text-align:center;color:white;'><td>2. SYNC DATA FROM EHR SERVER TO EHR LITE</td></tr>";
+		echo "<tr><tr><td style='background-color: #99CCFF; '>";
 		echo "EHR-lite import file is generated and can be downloaded&nbsp;<a href='$_SESSION[tmp_directory]$_SESSION[ehr_lite_import]'>HERE</a>. You can manually upload this import file to the EHR-lite computer.";
 		echo "</td></tr>";
-		echo "<tr><td align='center'><b>OR</b></td></tr>";
+		echo "<tr><td align='center' style='background-color: #99CCFF; '><b>OR</b></td></tr>";
 
 		echo "<tr>";
-		echo "<td>";
+		echo "<td style='background-color: #99CCFF; '>";
 		echo "SYNC the EHR-lite export file from this computer to the EHR-lite computer. Please supply the information below and press the EXPORT EHR-LITE DATA button.";
 		echo "</td>";
 		echo "</tr>";
@@ -390,36 +393,33 @@ function load_import_file(){
 		echo "<form action='$_SERVER[PHP_SELF]' name='form_sync' method='POST'>";
 		echo "<tr><td>";
 		echo "<table>";
-		echo "<tr><td>IP Address of the EHR-Lite computer</td>";
-		echo "<td><input type='text' name='txt_ip'></input></td></tr>";
+		echo "<tr style='background-color: #99CCFF; '><td >IP Address of the EHR-Lite computer</td>";
+		echo "<td><input type='text' name='txt_ip' style='font-size:18;background-color:#FFFFCC ;'></input></td></tr>";
 		
-		echo "<tr><td>Name of Database</td>";
-		echo "<td><input type='text' name='txt_db'></input></td></tr>";
+		echo "<tr style='background-color: #99CCFF; '><td>Name of Database</td>";
+		echo "<td><input type='text' name='txt_db' style='font-size:18;background-color:#FFFFCC ;'></input></td></tr>";
 
-		echo "<tr><td>EHR-lite database name</td>";
+		echo "<tr style='background-color: #99CCFF; '><td>EHR-lite database name</td>";
 		echo "<td>";
-		echo "<input type='text' name='txt_dbname'></input>";
+		echo "<input type='text' name='txt_dbname' style='font-size:18;background-color:#FFFFCC ;'></input>";
 		echo "</td></tr>";
 
-		echo "<tr><td>EHR-lite database password</td>";
+		echo "<tr style='background-color: #99CCFF; '><td>EHR-lite database password</td>";
 		echo "<td>";
-		echo "<input type='password' name='txt_dbpwd'></input>";
+		echo "<input type='password' name='txt_dbpwd' style='font-size:18;background-color:#FFFFCC ;'></input>";
 		echo "</td></tr>";
 
-		echo "<tr><td>Initials of EHR-lite User (ie. jp (for Jose Rizal))</td>";
+		echo "<tr style='background-color: #99CCFF; '><td>Initials of EHR-lite User (ie. jp (for Jose Rizal))</td>";
 		echo "<td>";
-		echo "<input type='text' name='txt_initial'></input>";
+		echo "<input type='text' name='txt_initial' style='font-size:18;background-color:#FFFFCC ;'></input>";
 		echo "</td></tr>";
-
-		
-
-		echo "<tr>";
-		echo "<td colspan='2' align='center'><input type='submit' value='EXPORT EHR-LITE DATA' name='submit_export'></input></td></tr>";
-
+				
 		echo "</table>";
 		echo "</td></tr>";
 		echo "</form>";
-
+		echo "<tr>";
+		echo "<td colspan='2' align='center'><input type='submit' value='EXPORT EHR-LITE DATA' name='submit_export' style='border: 1px solid #666;font-size:20px;'></input></td>";
+		echo "</tr>";
 		echo "</table>";
 }
 
