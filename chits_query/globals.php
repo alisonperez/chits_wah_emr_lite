@@ -1,7 +1,7 @@
 <?
   session_start();
   
-  $dbname = 'ehr_lite_test';
+  $dbname = 'ipil';
   //$dbname = 'camiling_core_data';
   #$dbname2 = 'chitsquery';
   $_SESSION["query"] = $dbname;

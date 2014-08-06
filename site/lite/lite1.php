@@ -379,7 +379,8 @@ function load_import_file(){
 		echo "<table align='center' width='60%' style='background-color: #FFFFFF;font-family: verdana,arial;font-size:20;'>";
 		echo "<tr style='background-color:#0000FF;text-align:center;color:white;'><td>2. SYNC DATA FROM EHR SERVER TO EHR LITE</td></tr>";
 		echo "<tr><tr><td style='background-color: #99CCFF; '>";
-		echo "EHR-lite import file is generated and can be downloaded&nbsp;<a href='$_SESSION[tmp_directory]$_SESSION[ehr_lite_import]'>HERE</a>. You can manually upload this import file to the EHR-lite computer.";
+		//echo "EHR-lite import file is generated and can be downloaded&nbsp;<a href='$_SESSION[tmp_directory]$_SESSION[ehr_lite_import]'>HERE</a>. You can manually upload this import file to the EHR-lite computer.";
+		echo "EHR-lite import file is generated and can be downloaded&nbsp;<a href='$_SESSION[tmp_directory]$_SESSION[file_name]'>HERE</a>. You can manually upload this import file to the EHR-lite computer.";
 		echo "</td></tr>";
 		echo "<tr><td align='center' style='background-color: #99CCFF; '><b>OR</b></td></tr>";
 
@@ -416,10 +417,11 @@ function load_import_file(){
 				
 		echo "</table>";
 		echo "</td></tr>";
-		echo "</form>";
+		
 		echo "<tr>";
 		echo "<td colspan='2' align='center'><input type='submit' value='EXPORT EHR-LITE DATA' name='submit_export' style='border: 1px solid #666;font-size:20px;'></input></td>";
 		echo "</tr>";
+		echo "</form>";
 		echo "</table>";
 }
 
